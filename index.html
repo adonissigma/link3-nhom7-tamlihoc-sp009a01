@@ -1,1 +1,792 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minigame Củng Cố Kiến Thức - ĐH Cần Thơ</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;800;900&family=Playfair+Display:ital,wght@0,700;0,800;1,700&family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --parchment: #f6efe2;
+            --ink-brown: #3e2723;
+            --stamp-red: #7a1f18;
+            --ctu-blue: #005baa;
+            --ctu-cyan: #00a0e9;
+            --ctu-gold: #c59b27;
+            --border-vintage: #c7b299;
+            --correct-green: #2e7d32;
+            --wrong-red: #c62828;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+
+        body {
+            font-family: 'Be Vietnam Pro', sans-serif;
+            background: #e8dec8 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Cfilter id='paper'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.04' numOctaves='5' result='noise'/%3E%3CfeColorMatrix type='matrix' values='1 0 0 0 0.94 0 1 0 0 0.89 0 0 1 0 0.80 0 0 0 1 0'/%3E%3C/filter%3E%3Crect width='80' height='80' filter='url(%23paper)' opacity='0.6'/%3E%3C/svg%3E");
+            color: var(--ink-brown);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        #presentation-viewport {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 72px;
+        }
+
+        .game-stage {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            padding: 16px 36px;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            opacity: 0; visibility: hidden;
+            transform: scale(0.98);
+            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .game-stage.active {
+            opacity: 1; visibility: visible; transform: scale(1);
+        }
+
+        /* STAGE 1: QUIZ CÂY TÁO */
+        .quiz-woodcut-layout {
+            width: 100%; max-width: 1100px; height: 540px;
+            background: #fbf7ee; border: 2px solid var(--border-vintage);
+            border-radius: 12px; box-shadow: 0 12px 35px rgba(62, 39, 35, 0.12);
+            display: grid; grid-template-columns: 380px 1fr;
+            gap: 24px; padding: 20px 24px;
+        }
+
+        .tree-scene-container {
+            background: #eaf2f8; border: 1.5px solid var(--border-vintage);
+            border-radius: 10px; position: relative;
+            overflow: hidden; display: flex; align-items: center; justify-content: center;
+        }
+
+        .fruit-drop-layer {
+            position: absolute; font-size: 3.8rem;
+            top: 20px; left: 54%; opacity: 0; pointer-events: none; z-index: 50;
+        }
+
+        .fruit-drop-layer.drop-apple {
+            opacity: 1; animation: animAppleDrop 0.65s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+        }
+
+        .fruit-drop-layer.drop-durian {
+            opacity: 1; animation: animDurianCrash 0.6s cubic-bezier(0.5, 0, 0.75, 0) forwards;
+        }
+
+        @keyframes animAppleDrop {
+            0% { transform: translateY(0); opacity: 1; }
+            70% { transform: translateY(220px) rotate(15deg); opacity: 1; }
+            85% { transform: translateY(195px) rotate(-10deg); }
+            100% { transform: translateY(220px) rotate(0deg); opacity: 1; }
+        }
+
+        @keyframes animDurianCrash {
+            0% { transform: translateY(0) scale(0.9); opacity: 1; }
+            70% { transform: translateY(190px) scale(1.1); opacity: 1; }
+            85% { transform: translateY(180px) scale(0.95); }
+            100% { transform: translateY(190px) scale(1); opacity: 1; }
+        }
+
+        #newton-character {
+            transform-origin: 150px 320px;
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        #newton-character.knocked-out {
+            transform: rotate(50deg) translate(25px, -15px);
+        }
+
+        .eye-normal { display: block; }
+        .eye-dead { display: none; }
+        #newton-character.knocked-out .eye-normal { display: none; }
+        #newton-character.knocked-out .eye-dead { display: block; }
+
+        .dizzy-stars { display: none; font-size: 1.8rem; animation: spinStars 1s infinite linear; }
+        #newton-character.knocked-out .dizzy-stars { display: block; }
+
+        @keyframes spinStars {
+            0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); }
+        }
+
+        .quiz-status-pill {
+            position: absolute; top: 14px; padding: 6px 14px;
+            border-radius: 999px; font-weight: 800; font-size: 0.85rem;
+            display: none; z-index: 30;
+        }
+
+        .quiz-status-pill.pass { display: block; background: #dcfce7; color: var(--correct-green); border: 1.5px solid #86efac; }
+        .quiz-status-pill.fail { display: block; background: #fee2e2; color: var(--wrong-red); border: 1.5px solid #fca5a5; }
+
+        .formula-float {
+            position: absolute; top: 85px; right: 15px;
+            font-family: 'Cinzel', serif; font-size: 1rem; font-weight: 800;
+            color: var(--stamp-red); opacity: 0; transition: opacity 0.4s;
+            background: rgba(255,255,255,0.92); padding: 4px 8px;
+            border-radius: 4px; border: 1px solid var(--border-vintage); z-index: 20;
+        }
+        .formula-float.show { opacity: 1; }
+
+        .quiz-panel { display: flex; flex-direction: column; justify-content: space-between; }
+        .q-number-chips { display: flex; gap: 6px; margin-bottom: 10px; }
+
+        .chip-btn {
+            width: 32px; height: 32px; border-radius: 6px;
+            border: 1px solid var(--border-vintage); background: #fff;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 0.85rem; cursor: pointer; transition: all 0.2s;
+        }
+
+        .chip-btn.active { background: var(--stamp-red); color: #fff; border-color: var(--stamp-red); }
+        .chip-btn.pass { background: #dcfce7; border-color: var(--correct-green); color: var(--correct-green); }
+        .chip-btn.fail { background: #fee2e2; border-color: var(--wrong-red); color: var(--wrong-red); }
+
+        .q-title { font-size: 1.12rem; font-weight: 700; line-height: 1.5; color: var(--ink-brown); min-height: 52px; }
+        .q-answers { display: flex; flex-direction: column; gap: 10px; margin: 10px 0; }
+
+        .answer-choice {
+            background: #ffffff; border: 1.5px solid var(--border-vintage);
+            padding: 12px 16px; border-radius: 8px; font-size: 0.92rem;
+            font-weight: 600; color: #2b1810; cursor: pointer;
+            transition: all 0.2s; text-align: left;
+        }
+
+        .answer-choice:hover:not(:disabled) {
+            background: #fdfaf3; border-color: var(--ctu-blue); transform: translateX(4px);
+        }
+
+        .answer-choice.correct { background: #dcfce7 !important; border-color: var(--correct-green) !important; color: var(--correct-green) !important; }
+        .answer-choice.wrong { background: #fee2e2 !important; border-color: var(--wrong-red) !important; color: var(--wrong-red) !important; }
+
+        .quiz-footer-nav { display: flex; justify-content: space-between; align-items: center; }
+
+        .btn-vintage {
+            background: var(--stamp-red); color: #fff; border: none;
+            padding: 9px 20px; border-radius: 6px; font-weight: 700; font-size: 0.9rem;
+            cursor: pointer; box-shadow: 0 4px 10px rgba(122, 31, 24, 0.25);
+            transition: all 0.2s; white-space: nowrap;
+        }
+        .btn-vintage:hover { opacity: 0.92; transform: translateY(-1px); }
+
+        /* STAGE 2: KÉO THẢ */
+        .matching-board-v2 {
+            width: 100%; max-width: 1050px; height: 530px;
+            display: flex; flex-direction: column; gap: 14px;
+        }
+
+        .drop-targets-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; flex: 1; }
+
+        .genius-dropzone {
+            background: #fbf7ee; border: 2px dashed #0284c7;
+            border-radius: 12px; padding: 14px;
+            display: flex; flex-direction: column; align-items: center;
+            overflow-y: auto; gap: 6px; transition: all 0.2s;
+            box-shadow: inset 0 0 15px rgba(2, 132, 199, 0.05);
+        }
+
+        .genius-dropzone.hawking-target { border-color: #8b261e; box-shadow: inset 0 0 15px rgba(139, 38, 30, 0.05); }
+        .genius-dropzone.drag-over { background: #f0f9ff; transform: scale(1.01); }
+
+        .portrait-frame {
+            width: 82px; height: 94px; border: 2px solid var(--border-vintage);
+            border-radius: 6px; background: #fff; box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            overflow: hidden; display: flex; align-items: center; justify-content: center;
+        }
+
+        .dropzone-title {
+            font-family: 'Playfair Display', serif; font-size: 1.25rem;
+            font-weight: 800; color: var(--ink-brown); margin: 4px 0 6px;
+        }
+
+        .card-dock {
+            background: #fbf7ee; border: 2px dashed var(--border-vintage);
+            border-radius: 12px; padding: 12px 16px; min-height: 120px; max-height: 130px;
+            overflow-x: auto; display: flex; gap: 12px; align-items: center;
+        }
+
+        .draggable-slip {
+            background: #ffffff; border: 1.5px solid var(--border-vintage);
+            border-radius: 8px; padding: 9px 15px; font-size: 0.88rem;
+            font-weight: 700; color: var(--ink-brown); box-shadow: 0 3px 6px rgba(0,0,0,0.06);
+            cursor: grab; white-space: nowrap; transition: all 0.2s;
+        }
+
+        .draggable-slip:active { cursor: grabbing; opacity: 0.6; }
+
+        .draggable-slip.matched {
+            cursor: default; background: #dcfce7; border-color: #86efac;
+            color: var(--correct-green); box-shadow: none; width: 95%; text-align: center; white-space: normal;
+        }
+
+        /* THANH ĐIỀU HƯỚNG */
+        #ctu-bottom-bar {
+            position: fixed; bottom: 0; left: 0;
+            width: 100%; height: 72px; background: #ffffff;
+            border-top: 2px solid var(--ctu-blue);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 28px; box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.06); z-index: 1000;
+        }
+
+        .ctu-brand { display: flex; align-items: center; gap: 12px; }
+        .ctu-logo-svg { width: 44px; height: 44px; flex-shrink: 0; }
+        .ctu-titles { display: flex; flex-direction: column; }
+        .ctu-main-title { font-size: 1.05rem; font-weight: 800; color: var(--ctu-blue); }
+        .ctu-slogan { font-size: 0.75rem; color: var(--ctu-cyan); font-weight: 600; }
+
+        .floating-pill {
+            display: flex; align-items: center; background: #ffffff;
+            border: 1px solid #cbd5e1; box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+            border-radius: 999px; padding: 5px 12px; gap: 8px;
+            position: absolute; left: 50%; top: -24px; transform: translateX(-50%);
+        }
+
+        .pill-btn {
+            background: #f8fafc; border: 1px solid #cbd5e1;
+            width: 36px; height: 36px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; font-weight: 700; font-size: 1rem;
+            color: #334155; transition: all 0.2s;
+        }
+
+        .pill-btn:hover { background: var(--ctu-blue); color: #fff; border-color: var(--ctu-blue); }
+        .pill-divider { width: 1px; height: 20px; background: #cbd5e1; }
+
+        .progress-rail {
+            position: absolute; bottom: 34px; left: 280px; right: 220px;
+            height: 4px; background: #e2e8f0; border-radius: 2px;
+        }
+
+        .progress-fill {
+            height: 100%; background: var(--ctu-cyan); width: 0%;
+            transition: width 0.3s ease; position: relative;
+        }
+
+        .diamond-marker {
+            position: absolute; right: -7px; top: -5px;
+            width: 14px; height: 14px; background: var(--ctu-blue);
+            transform: rotate(45deg); border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .ctu-web { font-size: 0.9rem; font-weight: 700; color: var(--ctu-blue); text-decoration: none; }
+        #confetti-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9999; }
+    </style>
+</head>
+<body>
+
+    <canvas id="confetti-canvas"></canvas>
+
+    <main id="presentation-viewport">
+
+        <!-- GIAI ĐOẠN 1: QUIZ CÂY TÁO NEWTON -->
+        <section id="stage-quiz" class="game-stage active">
+            <h2 style="font-family: 'Playfair Display', serif; font-size: 1.6rem; color: var(--ink-brown); margin-bottom: 12px;">
+                QUIZ TÂM LÝ: CÂY TÁO TƯ DUY
+            </h2>
+
+            <div class="quiz-woodcut-layout">
+                <div class="tree-scene-container" id="tree-scene-box">
+                    <div class="quiz-status-pill" id="quiz-status-pill">PASS [✓]</div>
+                    
+                    <div class="fruit-drop-layer" id="fruit-apple-layer">🍎</div>
+                    <div class="fruit-drop-layer" id="fruit-durian-layer">🍈</div>
+                    <div class="formula-float" id="formula-text">F = G (m₁m₂ / r²)</div>
+
+                    <svg viewBox="0 0 320 380" style="width: 100%; height: 100%;">
+                        <rect x="0" y="0" width="320" height="380" fill="#eaf2f8"/>
+                        <path d="M-20,380 Q100,280 340,320 L340,380 Z" fill="#7cb342"/>
+                        <path d="M-20,380 Q160,260 340,380 Z" fill="#558b2f"/>
+                        
+                        <path d="M70,380 Q95,200 80,120 Q120,140 140,380 Z" fill="#5d4037"/>
+                        <path d="M80,160 Q30,120 10,130 Q30,110 75,140 Z" fill="#4e342e"/>
+                        <path d="M90,140 Q150,90 200,110 Q140,110 85,135 Z" fill="#4e342e"/>
+                        
+                        <circle cx="60" cy="90" r="65" fill="#2e7d32"/>
+                        <circle cx="150" cy="70" r="75" fill="#388e3c"/>
+                        <circle cx="230" cy="95" r="60" fill="#2e7d32"/>
+                        <circle cx="140" cy="115" r="60" fill="#1b5e20"/>
+                        
+                        <circle cx="50" cy="85" r="7" fill="#d32f2f"/>
+                        <circle cx="110" cy="55" r="7" fill="#d32f2f"/>
+                        <circle cx="160" cy="65" r="7" fill="#d32f2f"/>
+                        <circle cx="210" cy="90" r="7" fill="#d32f2f"/>
+                        <circle cx="145" cy="105" r="7" fill="#d32f2f"/>
+
+                        <g id="newton-character" transform="translate(110, 180)">
+                            <text x="15" y="-10" class="dizzy-stars">💫 💫</text>
+
+                            <path d="M20,120 L80,135 L95,120 L60,105 L20,110 Z" fill="#263238"/>
+                            <path d="M25,125 L75,145 L85,155 L15,145 Z" fill="#37474f"/>
+                            <rect x="85" y="145" width="22" height="12" rx="4" fill="#212121"/>
+                            <rect x="90" y="147" width="8" height="8" fill="#ffb300"/>
+                            
+                            <path d="M15,50 Q45,45 65,65 L55,120 L5,115 Z" fill="#1565c0"/>
+                            <path d="M30,50 L45,75 L35,80 L25,55 Z" fill="#ffffff"/>
+                            <path d="M20,65 Q45,85 60,80 L55,100 Q35,95 15,85 Z" fill="#0d47a1"/>
+                            <polygon points="50,75 75,65 90,85 65,95" fill="#f5f5f5" stroke="#8d6e63" stroke-width="2"/>
+                            
+                            <circle cx="35" cy="38" r="14" fill="#ffcc80"/>
+                            
+                            <g class="eye-normal">
+                                <circle cx="42" cy="36" r="2" fill="#3e2723"/>
+                                <path d="M40,43 Q44,46 40,48" stroke="#d7ccc8" fill="none" stroke-width="1.5"/>
+                            </g>
+
+                            <g class="eye-dead">
+                                <line x1="38" y1="32" x2="46" y2="40" stroke="#b71c1c" stroke-width="2.2"/>
+                                <line x1="46" y1="32" x2="38" y2="40" stroke="#b71c1c" stroke-width="2.2"/>
+                                <path d="M37,46 Q42,42 47,46" stroke="#b71c1c" fill="none" stroke-width="2.2"/>
+                            </g>
+
+                            <path d="M22,25 Q35,15 50,25 Q55,40 50,55 Q40,60 30,58 Q18,50 22,25 Z" fill="#cfd8dc"/>
+                            <circle cx="22" cy="40" r="6" fill="#b0bec5"/>
+                            <circle cx="24" cy="50" r="6" fill="#b0bec5"/>
+                            <circle cx="28" cy="56" r="5" fill="#90a4ae"/>
+                        </g>
+                    </svg>
+                </div>
+
+                <div class="quiz-panel">
+                    <div>
+                        <div class="q-number-chips" id="q-chips-container"></div>
+                        <div class="q-title" id="quiz-question-title">Đang tải câu hỏi...</div>
+                        <div class="q-answers" id="quiz-choices-container"></div>
+                    </div>
+
+                    <div class="quiz-footer-nav">
+                        <button class="btn-vintage" style="background: #64748b;" onclick="prevQuizQ()">‹ Câu Trước</button>
+                        <span id="quiz-score-indicator" style="font-weight: 700; color: var(--ctu-blue);">Điểm: 0 / 100</span>
+                        <button class="btn-vintage" onclick="nextQuizQ()">Câu Kế Tiếp ›</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- GIAI ĐOẠN 2: KÉO THẢ NHÂN CÁCH -->
+        <section id="stage-matching" class="game-stage">
+            <h2 style="font-family: 'Playfair Display', serif; font-size: 1.6rem; color: var(--ink-brown); margin-bottom: 12px;">
+                TRÒ CHƠI: GHÉP NỐI NHÂN CÁCH
+            </h2>
+
+            <div class="matching-board-v2">
+                <div class="drop-targets-row">
+                    <div class="genius-dropzone" id="zone-newton" ondragover="allowDrop(event)" ondrop="handleDrop(event, 'newton')">
+                        <div class="portrait-frame">
+                            <svg viewBox="0 0 100 110" style="width: 100%; height: 100%;">
+                                <rect width="100" height="110" fill="#f0f7ff"/>
+                                <path d="M20,35 Q15,65 25,85 Q35,50 45,35 Q55,20 70,25 Q85,45 80,85 Q90,65 85,35 Q75,10 50,12 Q25,12 20,35 Z" fill="#cfd8dc"/>
+                                <circle cx="50" cy="50" r="22" fill="#ffd1a4"/>
+                                <path d="M44,48 Q50,52 56,48" stroke="#5d4037" fill="none" stroke-width="2"/>
+                                <circle cx="43" cy="45" r="2" fill="#3e2723"/>
+                                <circle cx="57" cy="45" r="2" fill="#3e2723"/>
+                                <path d="M22,110 L28,78 L45,84 L55,84 L72,78 L78,110 Z" fill="#1565c0"/>
+                                <polygon points="45,84 55,84 52,102 48,102" fill="#ffffff"/>
+                            </svg>
+                        </div>
+                        <div class="dropzone-title">Isaac Newton</div>
+                    </div>
+
+                    <div class="genius-dropzone hawking-target" id="zone-hawking" ondragover="allowDrop(event)" ondrop="handleDrop(event, 'hawking')">
+                        <div class="portrait-frame">
+                            <svg viewBox="0 0 100 110" style="width: 100%; height: 100%;">
+                                <rect width="100" height="110" fill="#fdf4f4"/>
+                                <rect x="18" y="22" width="64" height="65" rx="8" fill="#37474f"/>
+                                <rect x="25" y="28" width="50" height="52" rx="4" fill="#263238"/>
+                                <circle cx="50" cy="52" r="20" fill="#ffe0b2"/>
+                                <path d="M35,42 Q50,30 65,38 Q65,48 50,42 Z" fill="#8d6e63"/>
+                                <rect x="40" y="46" width="9" height="7" rx="1" fill="none" stroke="#212121" stroke-width="1.8"/>
+                                <rect x="52" y="46" width="9" height="7" rx="1" fill="none" stroke="#212121" stroke-width="1.8"/>
+                                <line x1="49" y1="49" x2="52" y2="49" stroke="#212121" stroke-width="1.5"/>
+                                <path d="M46,62 Q50,66 56,62" stroke="#b71c1c" fill="none" stroke-width="2"/>
+                                <path d="M28,110 L34,80 L66,80 L72,110 Z" fill="#455a64"/>
+                                <polygon points="47,80 53,80 51,98 49,98" fill="#0284c7"/>
+                            </svg>
+                        </div>
+                        <div class="dropzone-title">Stephen Hawking</div>
+                    </div>
+                </div>
+
+                <div class="card-dock" id="card-dock"></div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer id="ctu-bottom-bar">
+        <div class="ctu-brand">
+            <svg class="ctu-logo-svg" viewBox="0 0 100 100">
+                <polygon points="50,2 98,50 50,98 2,50" fill="#005baa" stroke="#00a0e9" stroke-width="3"/>
+                <polygon points="50,8 92,50 50,92 8,50" fill="none" stroke="#ffffff" stroke-width="2"/>
+                <circle cx="50" cy="50" r="24" fill="none" stroke="#facc15" stroke-dasharray="6,3" stroke-width="5"/>
+                <path d="M48,34 L52,34 L54,58 L46,58 Z" fill="#ffffff"/>
+                <path d="M44,32 Q50,18 56,32 Q50,24 44,32 Z" fill="#ef4444"/>
+                <text x="50" y="85" text-anchor="middle" fill="#ffffff" font-size="8" font-weight="900" font-family="'Be Vietnam Pro', sans-serif">ĐẠI HỌC CẦN THƠ</text>
+            </svg>
+            <div class="ctu-titles">
+                <span class="ctu-main-title">ĐẠI HỌC CẦN THƠ</span>
+                <span class="ctu-slogan">Cộng đồng - Toàn diện - Ưu việt</span>
+            </div>
+        </div>
+
+        <div class="progress-rail">
+            <div class="progress-fill" id="ctu-progress-rail-fill">
+                <div class="diamond-marker"></div>
+            </div>
+        </div>
+
+        <div class="floating-pill">
+            <button class="pill-btn" onclick="handleSmartPrev()" title="Lùi lại">‹</button>
+            <button class="pill-btn" onclick="handleSmartNext()" title="Tiến tới">›</button>
+            <div class="pill-divider"></div>
+            <button class="pill-btn" onclick="toggleFullScreen()" title="Toàn màn hình (F)">⛶</button>
+        </div>
+
+        <a href="https://www.ctu.edu.vn" target="_blank" class="ctu-web">www.ctu.edu.vn</a>
+    </footer>
+
+    <script>
+        let currentStageMode = "quiz"; // "quiz" hoặc "matching"
+
+        const quizList = [
+            { q: "1. (Newton) Theo tâm lý học nhân cách, cơ chế nào thúc đẩy cậu bé Newton vượt qua tổn thương mồ côi cha và bị bắt nạt?", options: ["A. Cơ chế phóng chiếu", "B. Cơ chế bù trừ tâm lý (lấy trí tuệ khẳng định tự tôn)", "C. Cơ chế chối bỏ thực tại", "D. Cơ chế thoái lui"], correct: 1 },
+            { q: "2. (Hawking) Khi bị chẩn đoán mắc ALS năm 21 tuổi (tiên lượng sống 2 năm), điều gì đã giúp Hawking vượt qua khủng hoảng?", options: ["A. Mong muốn kiếm tiền", "B. Tình yêu, sự đồng hành của gia đình và tìm thấy ý nghĩa trong nghiên cứu", "C. Áp lực thi cử", "D. Thái độ bất cần"], correct: 1 },
+            { q: "3. (Newton) Khi quản lý Xưởng đúc tiền Hoàng gia Anh, Newton thể hiện phẩm chất đạo đức nổi trội nào?", options: ["A. Thỏa hiệp với tội phạm", "B. Liêm chính thép, kiên quyết chống tiền giả dù bị đe dọa", "C. Thờ ơ, bỏ bê công việc", "D. Lợi dụng chức vụ trục lợi"], correct: 1 },
+            { q: "4. (Hawking) Tinh thần cống hiến và giá trị nhân văn của Stephen Hawking thể hiện rõ nhất qua hành động nào?", options: ["A. Giữ kín các phát minh", "B. Xuất bản cuốn 'Lược sử thời gian' đại chúng hóa tri thức vũ trụ", "C. Chỉ dạy người giàu", "D. Từ chối viết sách"], correct: 1 },
+            { q: "5. (Newton) Thí nghiệm dùng lăng kính tách ánh sáng trắng thành nhiều dải màu thể hiện năng lực nào?", options: ["A. Năng lực quan sát tinh tế và thực nghiệm khoa học chính xác", "B. Đoán mò cảm tính", "C. Sao chép từ Aristotle", "D. Ảo thuật giác quan"], correct: 0 },
+            { q: "6. (Hawking) Thành tựu đột phá nhất kết nối cơ học lượng tử với nhiệt động lực học của Hawking là:", options: ["A. Ba định luật chuyển động", "B. Khám phá lý thuyết về Bức xạ Hawking từ lỗ đen", "C. Định luật vạn vật hấp dẫn", "D. Chế tạo kính thiên văn"], correct: 1 },
+            { q: "7. (Newton) Khoảng thời gian đại dịch dịch hạch (1665–1667) buộc Cambridge đóng cửa đã làm nổi bật năng lực nào của Newton?", options: ["A. Năng lực tự học, nghiên cứu độc lập và biến cô độc thành đỉnh cao sáng tạo", "B. Trốn tránh dịch bệnh", "C. Phụ thuộc hoàn toàn vào trường", "D. Ngừng suy nghĩ"], correct: 0 },
+            { q: "8. (Hawking) Khi bị liệt hoàn toàn và mất giọng nói, Hawking đã thích nghi như thế nào để tiếp tục làm việc?", options: ["A. Từ bỏ nghiên cứu", "B. Sử dụng máy tính và cảm biến cơ má tổng hợp giọng nói để viết sách", "C. Nhờ người khác giải toán", "D. Rút lui về quê"], correct: 1 },
+            { q: "9. (So sánh) Theo Maslow, động cơ tâm lý thúc đẩy cả Newton và Hawking miệt mài nghiên cứu suốt đời thuộc tầng nào?", options: ["A. Nhu cầu vật chất", "B. Nhu cầu an toàn", "C. Nhu cầu Tự hiện thực hóa tiềm năng (Self-Actualization)", "D. Nhu cầu quyền lực"], correct: 2 },
+            { q: "10. (So sánh) Điểm khác biệt lớn nhất về phong cách truyền bá tri thức giữa Newton và Hawking là:", options: ["A. Newton viết sách đại chúng, Hawking khép kín", "B. Newton nghiên cứu hàn lâm kinh điển (Principia), khép kín; còn Hawking tích cực truyền cảm hứng đại chúng", "C. Cả hai đều không viết sách", "D. Không có khác biệt"], correct: 1 }
+        ];
+
+        let curQIdx = 0;
+        let userQuizAnswers = new Array(quizList.length).fill(null);
+
+        function setupQuiz() {
+            const chipsBox = document.getElementById('q-chips-container');
+            chipsBox.innerHTML = '';
+            quizList.forEach((_, idx) => {
+                const chip = document.createElement('div');
+                chip.className = `chip-btn ${idx === 0 ? 'active' : ''}`;
+                chip.id = `q-chip-${idx}`;
+                chip.innerText = idx + 1;
+                chip.onclick = () => { curQIdx = idx; displayQuizQuestion(); };
+                chipsBox.appendChild(chip);
+            });
+            displayQuizQuestion();
+        }
+
+        function displayQuizQuestion() {
+            const qData = quizList[curQIdx];
+            document.getElementById('quiz-question-title').innerText = qData.q;
+
+            document.querySelectorAll('.chip-btn').forEach((c, idx) => {
+                c.classList.toggle('active', idx === curQIdx);
+            });
+
+            const appleLayer = document.getElementById('fruit-apple-layer');
+            const durianLayer = document.getElementById('fruit-durian-layer');
+            const newton = document.getElementById('newton-character');
+            const formula = document.getElementById('formula-text');
+            const pill = document.getElementById('quiz-status-pill');
+
+            appleLayer.className = 'fruit-drop-layer';
+            durianLayer.className = 'fruit-drop-layer';
+            newton.classList.remove('knocked-out');
+            formula.classList.remove('show');
+            pill.style.display = 'none';
+
+            if (userQuizAnswers[curQIdx] !== null) {
+                const chosen = userQuizAnswers[curQIdx];
+                if (chosen === qData.correct) {
+                    appleLayer.className = 'fruit-drop-layer drop-apple';
+                    formula.classList.add('show');
+                    pill.innerText = "CORRECT [PASS ✓]";
+                    pill.className = "quiz-status-pill pass";
+                } else {
+                    durianLayer.className = 'fruit-drop-layer drop-durian';
+                    newton.classList.add('knocked-out');
+                    pill.innerText = "INCORRECT [FAILED / K.O ✗]";
+                    pill.className = "quiz-status-pill fail";
+                }
+            }
+
+            const choiceBox = document.getElementById('quiz-choices-container');
+            choiceBox.innerHTML = '';
+            qData.options.forEach((optText, oIdx) => {
+                const btn = document.createElement('button');
+                btn.className = 'answer-choice';
+                btn.innerText = optText;
+                btn.onclick = () => selectQuizAnswer(oIdx);
+
+                if (userQuizAnswers[curQIdx] !== null) {
+                    if (oIdx === qData.correct) btn.classList.add('correct');
+                    if (userQuizAnswers[curQIdx] === oIdx && oIdx !== qData.correct) btn.classList.add('wrong');
+                }
+                choiceBox.appendChild(btn);
+            });
+
+            updateProgress();
+            updateQuizScore();
+        }
+
+        function selectQuizAnswer(selectedIdx) {
+            userQuizAnswers[curQIdx] = selectedIdx;
+            const qData = quizList[curQIdx];
+            const chip = document.getElementById(`q-chip-${curQIdx}`);
+            const appleLayer = document.getElementById('fruit-apple-layer');
+            const durianLayer = document.getElementById('fruit-durian-layer');
+            const newton = document.getElementById('newton-character');
+            const formula = document.getElementById('formula-text');
+            const pill = document.getElementById('quiz-status-pill');
+
+            const allBtns = document.querySelectorAll('.answer-choice');
+            allBtns.forEach((btn, idx) => {
+                if (idx === qData.correct) btn.classList.add('correct');
+                if (idx === selectedIdx && selectedIdx !== qData.correct) btn.classList.add('wrong');
+            });
+
+            appleLayer.className = 'fruit-drop-layer';
+            durianLayer.className = 'fruit-drop-layer';
+            newton.classList.remove('knocked-out');
+
+            if (selectedIdx === qData.correct) {
+                setTimeout(() => appleLayer.className = 'fruit-drop-layer drop-apple', 10);
+                formula.classList.add('show');
+                pill.innerText = "CORRECT [PASS ✓]";
+                pill.className = "quiz-status-pill pass";
+                chip.className = "chip-btn pass active";
+                playChime();
+            } else {
+                setTimeout(() => {
+                    durianLayer.className = 'fruit-drop-layer drop-durian';
+                    setTimeout(() => newton.classList.add('knocked-out'), 250);
+                }, 10);
+                pill.innerText = "INCORRECT [FAILED / K.O ✗]";
+                pill.className = "quiz-status-pill fail";
+                chip.className = "chip-btn fail active";
+                playBonk();
+            }
+
+            updateQuizScore();
+        }
+
+        function nextQuizQ() {
+            if (curQIdx < quizList.length - 1) {
+                curQIdx++;
+                displayQuizQuestion();
+            } else {
+                switchStage("matching");
+            }
+        }
+
+        function prevQuizQ() {
+            if (curQIdx > 0) {
+                curQIdx--;
+                displayQuizQuestion();
+            }
+        }
+
+        function updateQuizScore() {
+            let correctCount = 0;
+            userQuizAnswers.forEach((ans, idx) => {
+                if (ans === quizList[idx].correct) correctCount++;
+            });
+            document.getElementById('quiz-score-indicator').innerText = `Điểm: ${correctCount * 10} / 100`;
+        }
+
+        function switchStage(mode) {
+            currentStageMode = mode;
+            if (mode === "quiz") {
+                document.getElementById('stage-quiz').classList.add('active');
+                document.getElementById('stage-matching').classList.remove('active');
+            } else {
+                document.getElementById('stage-quiz').classList.remove('active');
+                document.getElementById('stage-matching').classList.add('active');
+            }
+            updateProgress();
+            playBeep(440, 0.04);
+        }
+
+        function updateProgress() {
+            let pct = 0;
+            if (currentStageMode === "quiz") {
+                pct = (curQIdx / 11) * 100;
+            } else {
+                pct = 100;
+            }
+            document.getElementById('ctu-progress-rail-fill').style.width = `${pct}%`;
+        }
+
+        /* PHẦN 2: KÉO THẢ NHÂN CÁCH */
+        const shortTraits = [
+            { id: 1, text: "Tổn thương tuổi thơ, đa nghi", target: "newton" },
+            { id: 2, text: "Sử dụng thiết bị hỗ trợ giao tiếp", target: "hawking" },
+            { id: 3, text: "Tư duy toán học vượt trội", target: "newton" },
+            { id: 4, text: "Khả năng thích nghi hoàn cảnh", target: "hawking" },
+            { id: 5, text: "Liêm chính, chống tiền giả", target: "newton" },
+            { id: 6, text: "Ý chí kiên cường trước ALS", target: "hawking" },
+            { id: 7, text: "Quan sát và thực nghiệm quang học", target: "newton" },
+            { id: 8, text: "Khám phá bức xạ hố đen", target: "hawking" }
+        ];
+
+        function setupDragDrop() {
+            const dock = document.getElementById('card-dock');
+            dock.innerHTML = '';
+            const shuffled = [...shortTraits].sort(() => Math.random() - 0.5);
+
+            shuffled.forEach(item => {
+                const slip = document.createElement('div');
+                slip.className = 'draggable-slip';
+                slip.id = `slip-${item.id}`;
+                slip.draggable = true;
+                slip.innerText = item.text;
+                slip.ondragstart = (e) => e.dataTransfer.setData("text/plain", item.id);
+                slip.onclick = () => {
+                    const choice = prompt(`Gán "${item.text}" cho ai?\n1: Newton\n2: Hawking`);
+                    if (choice === "1") evaluateAssignment(item.id, "newton");
+                    if (choice === "2") evaluateAssignment(item.id, "hawking");
+                };
+                dock.appendChild(slip);
+            });
+        }
+
+        function allowDrop(e) { e.preventDefault(); e.currentTarget.classList.add('drag-over'); }
+
+        function handleDrop(e, target) {
+            e.preventDefault(); e.currentTarget.classList.remove('drag-over');
+            const cardId = parseInt(e.dataTransfer.getData("text/plain"));
+            evaluateAssignment(cardId, target);
+        }
+
+        function evaluateAssignment(cardId, target) {
+            const item = shortTraits.find(t => t.id === cardId);
+            const slipEl = document.getElementById(`slip-${cardId}`);
+            if (!slipEl) return;
+
+            if (item.target === target) {
+                playChime();
+                slipEl.draggable = false; slipEl.onclick = null;
+                slipEl.className = 'draggable-slip matched';
+                slipEl.innerText = `${item.text} ✓`;
+                document.getElementById(`zone-${target}`).appendChild(slipEl);
+
+                // KIỂM TRA NẾU ĐÃ KÉO THẢ XONG TẤT CẢ -> TỰ ĐỘNG BẮN PHÁO HOA KẾT THÚC
+                if (document.getElementById('card-dock').children.length === 0) {
+                    setTimeout(triggerConfetti, 350);
+                }
+            } else {
+                playBonk();
+                slipEl.style.borderColor = '#ef4444'; slipEl.style.background = '#fee2e2';
+                setTimeout(() => {
+                    slipEl.style.borderColor = 'var(--border-vintage)'; slipEl.style.background = '#ffffff';
+                }, 500);
+            }
+        }
+
+        function handleSmartNext() {
+            if (currentStageMode === "quiz") {
+                nextQuizQ();
+            }
+        }
+
+        function handleSmartPrev() {
+            if (currentStageMode === "matching") {
+                switchStage("quiz");
+            } else {
+                prevQuizQ();
+            }
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight') handleSmartNext();
+            if (e.key === 'ArrowLeft') handleSmartPrev();
+            if (e.key === 'f' || e.key === 'F') toggleFullScreen();
+        });
+
+        function toggleFullScreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(() => {});
+            } else {
+                document.exitFullscreen().catch(() => {});
+            }
+        }
+
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playBeep(freq, dur) {
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.frequency.value = freq; gain.gain.value = 0.04;
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.start(); osc.stop(audioCtx.currentTime + dur);
+            } catch(e){}
+        }
+
+        function playChime() {
+            try {
+                [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => {
+                    setTimeout(() => playBeep(f, 0.1), i * 70);
+                });
+            } catch(e){}
+        }
+
+        function playBonk() {
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sawtooth'; osc.frequency.value = 130;
+                gain.gain.value = 0.08; osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.25);
+            } catch(e){}
+        }
+
+        const canvas = document.getElementById('confetti-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+
+        function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        function triggerConfetti() {
+            particles = [];
+            const colors = ['#005baa', '#00a0e9', '#f59e0b', '#7a1f18', '#2e7d32'];
+            for (let i = 0; i < 140; i++) {
+                particles.push({
+                    x: canvas.width / 2, y: canvas.height / 2,
+                    vx: (Math.random() - 0.5) * 16, vy: (Math.random() - 0.7) * 18,
+                    size: Math.random() * 8 + 4, color: colors[Math.floor(Math.random() * colors.length)],
+                    alpha: 1
+                });
+            }
+            animateConfetti();
+        }
+
+        function animateConfetti() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach((p, idx) => {
+                p.x += p.vx; p.y += p.vy; p.vy += 0.35; p.alpha -= 0.015;
+                ctx.fillStyle = p.color; ctx.globalAlpha = Math.max(0, p.alpha);
+                ctx.fillRect(p.x, p.y, p.size, p.size);
+                if (p.alpha <= 0) particles.splice(idx, 1);
+            });
+            if (particles.length > 0) requestAnimationFrame(animateConfetti);
+            else ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        window.onload = () => { setupQuiz(); setupDragDrop(); };
+    </script>
+</body>
+</html>
 
